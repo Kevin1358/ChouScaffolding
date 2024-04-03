@@ -49,15 +49,4 @@ class ServerSideInputText{
         echo '>'; 
     }
 }
-class MyAppException extends Exception{
-    static function error_log($previous){
-        $logString = date("Y-m-d H:i:s").":".$previous->getMessage()."\n".$previous->getTraceAsString()."\n";
-        error_log($logString, 3, $_SERVER['DOCUMENT_ROOT']."/error_log.txt");
-    }
-    function __construct($previous)
-    {
-        error_log($previous);
-        parent::__construct("500 : Internal error");
-    }
-}
 ?>
