@@ -77,9 +77,9 @@ class ServerSideInputText extends ServerSideElementBase{
     }
 }
 
-class EventConst{
-    static int $onChange = 1;
-    static int $onSubmit = 0;
+enum EventConst{
+    case onChange;
+    case onSubmit;
 }
 class EventTargetPair{
     public int $event;
@@ -91,12 +91,18 @@ class ServerSideEventHandler{
     public function __construct() {
         return $this;
     }
-    public function bind(ServerSideInputText $target, int $eventConst, $handler):ServerSideEventHandler{
+    public function bind(ServerSideInputText $target, EventConst $eventConst, $handler):ServerSideEventHandler{
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target->getName();
         $eventTargetPair->event = $eventConst;
         $this->eventTargetHandler[md5(serialize($eventTargetPair))] = $handler;
-        $target->setAttribute(["onChange" => "this.form.submit()"]);
+        switch ($eventConst) {
+            case EventConst::onChange:
+                $target->setAttribute(["onChange" => "this.form.submit()"]);
+                break;
+            default:
+                break;
+        }
         return $this;
     }
     private function onChange($target,$value,$previous):void{
@@ -108,7 +114,7 @@ class ServerSideEventHandler{
         }
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target;
-        $eventTargetPair->event = EventConst::$onChange;
+        $eventTargetPair->event = EventConst::onChange;
         if(!isset($this->eventTargetHandler[md5(serialize($eventTargetPair))])){
             return;
         }
@@ -117,7 +123,7 @@ class ServerSideEventHandler{
     private function onSubmit($target,$value) : void {
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target;
-        $eventTargetPair->event = EventConst::$onSubmit;
+        $eventTargetPair->event = EventConst::onSubmit;
         if(!isset($this->eventTargetHandler[md5(serialize($eventTargetPair))])){
             return;
         }
