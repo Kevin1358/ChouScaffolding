@@ -82,7 +82,7 @@ enum EventConst{
     case onSubmit;
 }
 class EventTargetPair{
-    public int $event;
+    public EventConst $event;
     public string $target;
 }
 
@@ -91,6 +91,9 @@ class ServerSideEventHandler{
     public function __construct() {
         return $this;
     }
+    /**
+     * Bind event handler
+     */
     public function bind(ServerSideInputText $target, EventConst $eventConst, $handler):ServerSideEventHandler{
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target->getName();
@@ -129,6 +132,9 @@ class ServerSideEventHandler{
         }
         $this->eventTargetHandler[md5(serialize($eventTargetPair))]($value);
     }
+    /**
+     * Start event handler
+     */
     public function start():void{
         if(isset($_COOKIE['ServerSideEventHandler'])){
             $previous = json_decode($_COOKIE['ServerSideEventHandler'],true);
@@ -142,6 +148,15 @@ class ServerSideEventHandler{
         }
         setcookie('ServerSideEventHandler',json_encode($_POST));
 
+    }
+    /**
+     * Clear all value form current form
+     */
+    public static function clearValue():void{
+        $previous = json_decode($_COOKIE['ServerSideEventHandler'],true);
+        foreach($previous as $key => $eventTargetPair){
+            unset($_POST[$eventTargetPair["target"]]);
+        }
     }
 }
 ?>
