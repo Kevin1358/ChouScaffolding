@@ -154,8 +154,8 @@ class ServerSideEventHandler{
      */
     public static function clearValue():void{
         $previous = json_decode($_COOKIE['ServerSideEventHandler'],true);
-        foreach($previous as $key => $eventTargetPair){
-            unset($_POST[$eventTargetPair["target"]]);
+        foreach($previous as $key){
+            unset($_POST[$key]);
         }
     }
 }
