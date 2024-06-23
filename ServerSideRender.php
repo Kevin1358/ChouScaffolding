@@ -184,9 +184,17 @@ class ServerSideEventHandler{
         }
     }
 }
-class PageControllerPair{
-    public string $endpoint;
+enum PageTypeConst{
+    case Page;
+    case Service;
+}
+class PageTypePair{
     public string $page;
+    public PageTypeConst $type;
+    public function __construct(string $page, PageTypeConst $type) {
+        $this->page = $page;
+        $this->type = $type;
+    }
 }
 class PageRender{
     public string $pageFolder = "/page/";
@@ -211,22 +219,36 @@ class PageRender{
         $this->endpointTargetPair = array();
         return $this;
     }
-    public function bind(array $endpoints,string $target){
+    public function bind(array $endpoints,string $target, PageTypeConst $type){
+        $pageControllerPair = new PageTypePair($target,$type);
         foreach($endpoints as $endpoint){
-            $this->endpointTargetPair[$endpoint] = $target;
+            $this->endpointTargetPair[$endpoint] = $pageControllerPair;
         }
     }
     public function start(){
         $endpoint = $_SERVER["REQUEST_URI"];
         if(isset($this->endpointTargetPair[$endpoint])){
-            try{
-                $body = function()use($endpoint){
-                    require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint];
-                };
-                $this->html($body,$this->header);
-            }catch(Throwable $ex){
-                http_response_code(500);
-                throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
+            $pageTypePair = $this->endpointTargetPair[$endpoint];
+            if($pageTypePair->type == PageTypeConst::Page){
+                try{
+                    $body = function()use($endpoint){
+                        require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
+                    };
+                    $this->html($body,$this->header);
+                }catch(Throwable $ex){
+                    http_response_code(500);
+                    throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
+                }
+            }else{
+                try{
+                    $body = function()use($endpoint){
+                        require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
+                    };
+                    $this->service($body);
+                }catch(Throwable $ex){
+                    http_response_code(500);
+                    throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
+                }
             }
         }else{
             http_response_code(404);
@@ -240,5 +262,8 @@ class PageRender{
         <?php $body()?>
         </html>
     <?php }
+    private function service($body){
+        $body();
+    }
 }
 ?>
