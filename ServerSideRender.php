@@ -80,6 +80,7 @@ class ServerSideInputText extends ServerSideElementBase{
 enum EventConst{
     case onChange;
     case onSubmit;
+    case onInit;
 }
 class EventTargetPair{
     public EventConst $event;
@@ -88,7 +89,10 @@ class EventTargetPair{
 
 class ServerSideEventHandler{
     private array $eventTargetHandler = array();
-    public function __construct() {
+    private array $previousTargetValues = array();
+    private array $session;
+    public function __construct(array &$session) {
+        $this->session = &$session;
         return $this;
     }
     /**
@@ -98,7 +102,7 @@ class ServerSideEventHandler{
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target->getName();
         $eventTargetPair->event = $eventConst;
-        $this->eventTargetHandler[md5(serialize($eventTargetPair))] = $handler;
+        $this->eventTargetHandler[serialize($eventTargetPair)] = $handler;
         switch ($eventConst) {
             case EventConst::onChange:
                 $target->setAttribute(["onChange" => "this.form.submit()"]);
@@ -108,9 +112,23 @@ class ServerSideEventHandler{
         }
         return $this;
     }
-    private function onChange($target,$value,$previous):void{
-        if(!isset($previous[$target])){
+    private function onInit(EventTargetPair $eventTargetPair,string $target) : void {
+        if($eventTargetPair->event != EventConst::onInit){
             return;
+        }
+        $eventTargetPair = new EventTargetPair(); 
+        $eventTargetPair->target = $target;
+        $eventTargetPair->event = EventConst::onInit;
+        if(!isset($this->eventTargetHandler[serialize($eventTargetPair)])){
+            return;
+        }
+        $this->eventTargetHandler[serialize($eventTargetPair)]();
+        unset($this->previousTargetValues[$target]);
+    }
+    
+    private function onChange(string $target,string $value,array $previous):void{
+        if(!isset($previous[$target])){
+            return;   
         }
         if($previous[$target] == $value){
             return;
@@ -118,42 +136,49 @@ class ServerSideEventHandler{
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target;
         $eventTargetPair->event = EventConst::onChange;
-        if(!isset($this->eventTargetHandler[md5(serialize($eventTargetPair))])){
+        if(!isset($this->eventTargetHandler[serialize($eventTargetPair)])){
             return;
         }
-        $this->eventTargetHandler[md5(serialize($eventTargetPair))]($value);
+        $this->eventTargetHandler[serialize($eventTargetPair)]();
     }
-    private function onSubmit($target,$value) : void {
+    private function onSubmit(string $target,string $value) : void {
         $eventTargetPair = new EventTargetPair(); 
         $eventTargetPair->target = $target;
         $eventTargetPair->event = EventConst::onSubmit;
-        if(!isset($this->eventTargetHandler[md5(serialize($eventTargetPair))])){
+        if(!isset($this->eventTargetHandler[serialize($eventTargetPair)])){
             return;
         }
-        $this->eventTargetHandler[md5(serialize($eventTargetPair))]($value);
+        $this->eventTargetHandler[serialize($eventTargetPair)]($value);
     }
     /**
      * Start event handler
      */
     public function start():void{
-        if(isset($_COOKIE['ServerSideEventHandler'])){
-            $previous = json_decode($_COOKIE['ServerSideEventHandler'],true);
-        }else{
-            $previous = array();
-        }
         $current = $_POST;
-        foreach($current as $target=>$value){
-            $this->onChange($target,$value,$previous);
-            $this->onSubmit($target,$value);
+        if(isset($this->session['ServerSideEventHandler'])){
+            $this->previousTargetValues = json_decode($this->session['ServerSideEventHandler'],true);
+            foreach($current as $target=>$value){
+                $this->onChange($target,$value,$this->previousTargetValues);
+                $this->onSubmit($target,$value);
+                $this->previousTargetValues[$target] = $value;
+            }
+        }else{
+            foreach($this->eventTargetHandler as $eventTargetPair=>$handler){
+                $eventTargetPair = unserialize($eventTargetPair,["allowed_classes"=>["EventTargetPair"]]);
+                $target = $eventTargetPair->target;
+                $this->previousTargetValues[$target] = "";
+                $this->onInit($eventTargetPair,$target);
+            }
+            
         }
-        setcookie('ServerSideEventHandler',json_encode($_POST));
+        $this->session['ServerSideEventHandler'] = json_encode($this->previousTargetValues);
 
     }
     /**
      * Clear all value form current form
      */
     public static function clearValue():void{
-        $previous = json_decode($_COOKIE['ServerSideEventHandler'],true);
+        $previous = json_decode($_SESSION['ServerSideEventHandler'],true);
         foreach($previous as $key){
             unset($_POST[$key]);
         }
