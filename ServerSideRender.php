@@ -184,4 +184,61 @@ class ServerSideEventHandler{
         }
     }
 }
+class PageControllerPair{
+    public string $endpoint;
+    public string $page;
+}
+class PageRender{
+    public string $pageFolder = "/page/";
+    private array $endpointTargetPair;
+    public $body;
+    public $header;
+    public string $title = "Kamijaga Account";
+    public function __construct() {
+        $this->header = function(){?>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <link rel="stylesheet" href="/style.css">
+                <title>Register - Kamijaga</title>
+            </head>
+        <?php };
+        $this->body = function(){?>
+            <body>
+                
+            </body>
+        <?php };
+        $this->endpointTargetPair = array();
+        return $this;
+    }
+    public function bind(array $endpoints,string $target){
+        foreach($endpoints as $endpoint){
+            $this->endpointTargetPair[$endpoint] = $target;
+        }
+    }
+    public function start(){
+        $endpoint = $_SERVER["REQUEST_URI"];
+        if(isset($this->endpointTargetPair[$endpoint])){
+            try{
+                $body = function()use($endpoint){
+                    require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint];
+                };
+                $this->html($body,$this->header);
+            }catch(Throwable $ex){
+                http_response_code(500);
+                throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
+            }
+        }else{
+            http_response_code(404);
+        }
+    }
+    
+    private function html($body,$header){?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <?php $header()?>
+        <?php $body()?>
+        </html>
+    <?php }
+}
 ?>
