@@ -197,18 +197,16 @@ class PageTypePair{
     }
 }
 class PageRender{
-    public string $pageFolder = "/page/";
+    public string $pageFolder;
     private array $endpointTargetPair;
     public $body;
     public $header;
     public string $title = "Kamijaga Account";
-    public function __construct() {
+    public function __construct(string $pageFolder = "/page/") {
         $this->header = function(){?>
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link rel="stylesheet" href="/style.css">
-                <title>Register - Kamijaga</title>
             </head>
         <?php };
         $this->body = function(){?>
