@@ -14,7 +14,7 @@ class Database{
             throw $th;
         }
     }
-    public function query(string $query,string $type,array $variable){
+    public function query(string $query,string $type,array $variable):mysqli_result|false{
         $statement = $this->connection->prepare($query);
         $statement->bind_param($type,...$variable);
         $statement->execute();
