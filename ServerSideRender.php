@@ -214,6 +214,7 @@ class PageRender{
                 
             </body>
         <?php };
+        $this->pageFolder = $pageFolder;
         $this->endpointTargetPair = array();
         return $this;
     }
