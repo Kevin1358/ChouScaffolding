@@ -225,7 +225,7 @@ class PageRender{
         }
     }
     public function start(){
-        $endpoint = $_SERVER["REQUEST_URI"];
+        $endpoint = strtolower(explode("?",$_SERVER["REQUEST_URI"])[0]);
         if(isset($this->endpointTargetPair[$endpoint])){
             $pageTypePair = $this->endpointTargetPair[$endpoint];
             if($pageTypePair->type == PageTypeConst::Page){
@@ -238,7 +238,7 @@ class PageRender{
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
-            }else{
+            }else if($pageTypePair->type == PageTypeConst::Service){
                 try{
                     $body = function()use($endpoint){
                         require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
