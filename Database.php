@@ -14,10 +14,11 @@ class Database{
             throw $th;
         }
     }
-    public function query(string $query,string $type,array $variable):mysqli_result|false{
+    public function query(string $query,string $type,array $variable,&$affected_row = 0):mysqli_result|false{
         $statement = $this->connection->prepare($query);
         $statement->bind_param($type,...$variable);
         $statement->execute();
+        $affected_row = $statement->affected_rows;
         return $statement->get_result();
     }
 }
