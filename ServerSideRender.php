@@ -191,11 +191,15 @@ enum PageTypeConst{
 class PageTypePair{
     public string $page;
     public PageTypeConst $type;
-    public function __construct(string $page, PageTypeConst $type) {
+    public $restrictionFunction;
+    public function __construct(string $page, PageTypeConst $type, $restrictionFunction) {
         $this->page = $page;
         $this->type = $type;
+        $this->restrictionFunction = $restrictionFunction;
     }
 }
+interface PageRenderExceptionBase{};
+class PageRenderRestrictionException extends Exception implements PageRenderExceptionBase{};
 class PageRender{
     public string $pageFolder;
     private array $endpointTargetPair;
@@ -218,8 +222,8 @@ class PageRender{
         $this->endpointTargetPair = array();
         return $this;
     }
-    public function bind(array $endpoints,string $target, PageTypeConst $type){
-        $pageControllerPair = new PageTypePair($target,$type);
+    public function bind(array $endpoints,string $target, PageTypeConst $type,$restrictionFunction){
+        $pageControllerPair = new PageTypePair($target,$type,$restrictionFunction);
         foreach($endpoints as $endpoint){
             $this->endpointTargetPair[$endpoint] = $pageControllerPair;
         }
@@ -230,21 +234,36 @@ class PageRender{
             $pageTypePair = $this->endpointTargetPair[$endpoint];
             if($pageTypePair->type == PageTypeConst::Page){
                 try{
+                    if($pageTypePair->restrictionFunction != null){
+                        if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
+                    }
                     $body = function()use($endpoint){
                         require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
                     };
                     $this->html($body,$this->header);
-                }catch(Throwable $ex){
+                }
+                catch(PageRenderRestrictionException $pex){
+                    http_response_code(401);
+                }
+                catch(Throwable $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
             }else if($pageTypePair->type == PageTypeConst::Service){
                 try{
+                    if($pageTypePair->restrictionFunction != null){
+                        if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
+                    }
                     $body = function()use($endpoint){
                         require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
                     };
                     $this->service($body);
-                }catch(Throwable $ex){
+                    
+                }
+                catch(PageRenderRestrictionException $pex){
+                    http_response_code(401);
+                }
+                catch(Throwable $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
