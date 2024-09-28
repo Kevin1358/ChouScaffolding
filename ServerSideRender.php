@@ -283,5 +283,12 @@ class PageRender{
     private function service($body){
         $body();
     }
+    static public function Redirect($url){
+        ?>
+        <script>
+            window.location.href = '<?php echo $url;?>';
+        </script>
+        <?php
+    }
 }
 ?>
