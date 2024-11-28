@@ -189,24 +189,21 @@ enum PageTypeConst{
     case Service;
 }
 class PageTypePair{
-    public string $page;
-    public PageTypeConst $type;
+    public PageRenderPageBase $page;
     public $restrictionFunction;
-    public function __construct(string $page, PageTypeConst $type, $restrictionFunction) {
+    public function __construct(PageRenderPageBase $page, PageTypeConst $type, $restrictionFunction) {
         $this->page = $page;
-        $this->type = $type;
         $this->restrictionFunction = $restrictionFunction;
     }
 }
 interface PageRenderExceptionBase{};
 class PageRenderRestrictionException extends Exception implements PageRenderExceptionBase{};
 class PageRender{
-    public string $pageFolder;
     private array $endpointTargetPair;
     public $body;
     public $header;
     public string $title = "Kamijaga Account";
-    public function __construct(string $pageFolder = "/page/") {
+    public function __construct() {
         $this->header = function(){?>
             <head>
                 <meta charset="UTF-8">
@@ -218,11 +215,10 @@ class PageRender{
                 
             </body>
         <?php };
-        $this->pageFolder = $pageFolder;
         $this->endpointTargetPair = array();
         return $this;
     }
-    public function bind(array $endpoints,string $target, PageTypeConst $type,$restrictionFunction){
+    public function bind(array $endpoints,PageRenderPageBase $target, PageTypeConst $type,$restrictionFunction){
         $pageControllerPair = new PageTypePair($target,$type,$restrictionFunction);
         foreach($endpoints as $endpoint){
             $this->endpointTargetPair[$endpoint] = $pageControllerPair;
@@ -232,13 +228,13 @@ class PageRender{
         $endpoint = strtolower(explode("?",$_SERVER["REQUEST_URI"])[0]);
         if(isset($this->endpointTargetPair[$endpoint])){
             $pageTypePair = $this->endpointTargetPair[$endpoint];
-            if($pageTypePair->type == PageTypeConst::Page){
+            if(isset(class_implements($pageTypePair->page)["PageRenderPageBase"]) ){
                 try{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
                     $body = function()use($endpoint){
-                        require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
+                        $this->endpointTargetPair[$endpoint]->page->Main();
                     };
                     $this->html($body,$this->header);
                 }
@@ -255,7 +251,7 @@ class PageRender{
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
                     $body = function()use($endpoint){
-                        require_once $_SERVER["DOCUMENT_ROOT"].$this->pageFolder.$this->endpointTargetPair[$endpoint]->page;
+                        $this->endpointTargetPair[$endpoint]->page->Main();
                     };
                     $this->service($body);
                     
@@ -291,4 +287,6 @@ class PageRender{
         <?php
     }
 }
-?>
+interface PageRenderPageBase{
+    function Main();
+}?>
