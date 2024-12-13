@@ -166,7 +166,7 @@ class ServerSideEventHandler{
             }
         }else{
             foreach($this->eventTargetHandler as $eventTargetPair=>$handler){
-                $eventTargetPair = unserialize($eventTargetPair,["allowed_classes"=>["EventTargetPair"]]);
+                $eventTargetPair = unserialize($eventTargetPair,["allowed_classes"=>[EventTargetPair::class]]);
                 $target = $eventTargetPair->target;
                 $this->previousTargetValues[$target] = "";
                 $this->onInit($eventTargetPair,$target);
@@ -193,7 +193,7 @@ enum PageTypeConst{
 class PageTypePair{
     public PageRenderPageBase $page;
     public $restrictionFunction;
-    public function __construct(PageRenderPageBase $page, PageTypeConst $type, $restrictionFunction) {
+    public function __construct(PageRenderPageBase $page, $restrictionFunction) {
         $this->page = $page;
         $this->restrictionFunction = $restrictionFunction;
     }
@@ -220,8 +220,8 @@ class PageRender{
         $this->endpointTargetPair = array();
         return $this;
     }
-    public function bind(array $endpoints,PageRenderPageBase $target, PageTypeConst $type,$restrictionFunction){
-        $pageControllerPair = new PageTypePair($target,$type,$restrictionFunction);
+    public function bind(array $endpoints,PageRenderPageBase $target,$restrictionFunction){
+        $pageControllerPair = new PageTypePair($target,$restrictionFunction);
         foreach($endpoints as $endpoint){
             $this->endpointTargetPair[$endpoint] = $pageControllerPair;
         }
@@ -230,7 +230,7 @@ class PageRender{
         $endpoint = strtolower(explode("?",$_SERVER["REQUEST_URI"])[0]);
         if(isset($this->endpointTargetPair[$endpoint])){
             $pageTypePair = $this->endpointTargetPair[$endpoint];
-            if(isset(class_implements($pageTypePair->page)["PageRenderPageBase"]) ){
+            if(isset(class_implements($pageTypePair->page)[PageRenderPageBase::class]) ){
                 try{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
@@ -247,7 +247,7 @@ class PageRender{
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
-            }else if($pageTypePair->type == PageTypeConst::Service){
+            }else if(isset(class_implements($pageTypePair->page)[PageRenderAPIBase::class])){
                 try{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
@@ -291,4 +291,6 @@ class PageRender{
 }
 interface PageRenderPageBase{
     function Main();
-}?>
+}
+interface PageRenderAPIBase{}
+?>
