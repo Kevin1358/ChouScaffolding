@@ -1,7 +1,9 @@
 <?php
+namespace ChouScaffolding\Database;
+
 class Database{
-    public PDO $connection;
-    public function __construct(PDO $connection) {
+    public \PDO $connection;
+    public function __construct(\PDO $connection) {
         $this->connection = $connection;
     }
     public function transaction($handler){
@@ -14,7 +16,7 @@ class Database{
             throw $th;
         }
     }
-    public function query(string $query,array $variable,&$affected_row = 0):PDOStatement{
+    public function query(string $query,array $variable,&$affected_row = 0):\PDOStatement{
         $statement = $this->connection->prepare($query);
         $statement->execute($variable);
         $affected_row = $statement->rowCount();

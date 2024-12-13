@@ -1,8 +1,9 @@
 <?php
+namespace ChouScaffolding\LogException;
 /**
  * CertiApp standart exception
  */
-class LogException extends Exception{
+class LogException extends \Exception{
     static $MODE_LOG_ERROR = 1;
     static $MODE_DEFAULT = 0;
     /**
@@ -12,7 +13,7 @@ class LogException extends Exception{
     *   @param null|Throwable $previous
     *   [optional] The previous throwable used for the exception chaining.
     */
-    public function __construct(string $message = "", int $mode = 0, Throwable|null $previous = null){
+    public function __construct(string $message = "", int $mode = 0, \Throwable|null $previous = null){
         parent::__construct($message,0,$previous);
         if($mode == LogException::$MODE_LOG_ERROR){
             if($previous == null ){

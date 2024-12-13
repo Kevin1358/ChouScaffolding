@@ -1,4 +1,6 @@
 <?php
+namespace ChouScaffolding\ServerSideRender;
+use ChouScaffolding\LogException\LogException;
 class ServerSideElementBase{
     protected array $attributes = array();
     function setId($id){
@@ -197,7 +199,7 @@ class PageTypePair{
     }
 }
 interface PageRenderExceptionBase{};
-class PageRenderRestrictionException extends Exception implements PageRenderExceptionBase{};
+class PageRenderRestrictionException extends \Exception implements PageRenderExceptionBase{};
 class PageRender{
     private array $endpointTargetPair;
     public $body;
@@ -241,7 +243,7 @@ class PageRender{
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
                 }
-                catch(Throwable $ex){
+                catch(\Throwable $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
@@ -259,7 +261,7 @@ class PageRender{
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
                 }
-                catch(Throwable $ex){
+                catch(\Throwable $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
