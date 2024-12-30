@@ -1,6 +1,8 @@
 <?php
 namespace ChouScaffolding\ServerSideRender;
 use ChouScaffolding\LogException\LogException;
+use Exception;
+
 class ServerSideElementBase{
     protected array $attributes = array();
     function setId($id){
@@ -191,9 +193,9 @@ enum PageTypeConst{
     case Service;
 }
 class PageTypePair{
-    public PageRenderPageBase $page;
+    public PageRenderOutBase $page;
     public $restrictionFunction;
-    public function __construct(PageRenderPageBase $page, $restrictionFunction) {
+    public function __construct(PageRenderOutBase $page, $restrictionFunction) {
         $this->page = $page;
         $this->restrictionFunction = $restrictionFunction;
     }
@@ -220,7 +222,7 @@ class PageRender{
         $this->endpointTargetPair = array();
         return $this;
     }
-    public function bind(array $endpoints,PageRenderPageBase $target,$restrictionFunction){
+    public function bind(array $endpoints,PageRenderOutBase $target,$restrictionFunction){
         $pageControllerPair = new PageTypePair($target,$restrictionFunction);
         foreach($endpoints as $endpoint){
             $this->endpointTargetPair[$endpoint] = $pageControllerPair;
@@ -235,15 +237,13 @@ class PageRender{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $body = function()use($endpoint){
-                        $this->endpointTargetPair[$endpoint]->page->Main();
-                    };
+                    $body = $this->endpointTargetPair[$endpoint]->page->Main();
                     $this->html($body,$this->header);
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
                 }
-                catch(\Throwable $ex){
+                catch(Exception $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
@@ -252,16 +252,14 @@ class PageRender{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $body = function()use($endpoint){
-                        $this->endpointTargetPair[$endpoint]->page->Main();
-                    };
+                    $body = $this->endpointTargetPair[$endpoint]->page->Main();
                     $this->service($body);
                     
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
                 }
-                catch(\Throwable $ex){
+                catch(Exception $ex){
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
@@ -289,8 +287,11 @@ class PageRender{
         <?php
     }
 }
-interface PageRenderPageBase{
+interface PageRenderOutBase{}
+interface PageRenderPageBase extends PageRenderOutBase{
     function Main();
 }
-interface PageRenderAPIBase{}
+interface PageRenderAPIBase extends PageRenderOutBase{
+    function Main();
+}
 ?>
