@@ -306,10 +306,10 @@ interface PageRenderAPIBase extends PageRenderOutBase{
     function Main();
 }
 interface ClassFactoryException{};
-class ClassNotFoundExcetion extends \Exception implements ClassFactoryException{}
+class ClassNotFoundException extends \Exception implements ClassFactoryException{}
 class ClassFactory{
     static function Resolve(string $className){
-        if(class_exists($className)) return new $className; else throw new ClassNotFoundExcetion();
+        if(class_exists($className)) return new $className; else throw new ClassNotFoundException();
     }
 }
 ?>
