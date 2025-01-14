@@ -277,7 +277,7 @@ class PageRender{
         }
     }
     
-    private function html($pageClass,$header){?>
+    private function html(PageRenderPageBase $pageClass,$header){?>
         <!DOCTYPE html>
         <html lang="en">
         <?php $header()?>
