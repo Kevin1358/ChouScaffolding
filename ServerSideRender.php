@@ -193,10 +193,10 @@ enum PageTypeConst{
     case Service;
 }
 class PageTypePair{
-    public PageRenderOutBase $page;
+    public string $pageClass;
     public $restrictionFunction;
-    public function __construct(PageRenderOutBase $page, $restrictionFunction) {
-        $this->page = $page;
+    public function __construct(string $pageClass, $restrictionFunction) {
+        $this->pageClass = $pageClass;
         $this->restrictionFunction = $restrictionFunction;
     }
 }
@@ -204,6 +204,7 @@ interface PageRenderExceptionBase{};
 class PageRenderRestrictionException extends \Exception implements PageRenderExceptionBase{};
 class PageRender{
     private array $endpointTargetPair;
+    private array $middleWares;
     public $body;
     public $header;
     public string $title = "Kamijaga Account";
@@ -220,24 +221,32 @@ class PageRender{
             </body>
         <?php };
         $this->endpointTargetPair = array();
+        $this->middleWares = array();
         return $this;
     }
-    public function bind(array $endpoints,PageRenderOutBase $target,$restrictionFunction){
-        $pageControllerPair = new PageTypePair($target,$restrictionFunction);
+    public function bind(array $endpoints,string $pageClass,$restrictionFunction){
+        $pageControllerPair = new PageTypePair($pageClass,$restrictionFunction);
         foreach($endpoints as $endpoint){
             $this->endpointTargetPair[$endpoint] = $pageControllerPair;
         }
     }
+    public function bindMiddleWare(MiddleWareBase $middleWare){
+        array_push($this->middleWares,$middleWare);
+    }
     public function start(){
         $endpoint = strtolower(explode("?",$_SERVER["REQUEST_URI"])[0]);
+        foreach($this->middleWares as $middleWare){
+            $middleWare::Main();
+        }
         if(isset($this->endpointTargetPair[$endpoint])){
             $pageTypePair = $this->endpointTargetPair[$endpoint];
-            if(isset(class_implements($pageTypePair->page)[PageRenderPageBase::class]) ){
+            if(isset(class_implements($pageTypePair->pageClass)[PageRenderPageBase::class]) ){
                 try{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $this->html($this->endpointTargetPair[$endpoint]->page,$this->header);
+                    $pageClass =  ClassFactory::Resolve($this->endpointTargetPair[$endpoint]->pageClass);
+                    $this->html($pageClass,$this->header);
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
@@ -246,12 +255,14 @@ class PageRender{
                     http_response_code(500);
                     throw new LogException("Internal Error",LogException::$MODE_LOG_ERROR,$ex);
                 }
-            }else if(isset(class_implements($pageTypePair->page)[PageRenderAPIBase::class])){
+            }else if(isset(class_implements($pageTypePair->pageClass)[PageRenderAPIBase::class])){
                 try{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $this->service($this->endpointTargetPair[$endpoint]->page);
+                    $pageClass =  ClassFactory::Resolve($this->endpointTargetPair[$endpoint]->pageClass);
+                    $this->service($pageClass);
+                    
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
@@ -266,11 +277,11 @@ class PageRender{
         }
     }
     
-    private function html(PageRenderPageBase $page,$header){?>
+    private function html($pageClass,$header){?>
         <!DOCTYPE html>
         <html lang="en">
         <?php $header()?>
-        <?php $page->Main()?>
+        <?php $pageClass->Main()?>
         </html>
     <?php }
     private function service(PageRenderAPIBase $page){
@@ -284,11 +295,21 @@ class PageRender{
         <?php
     }
 }
+interface MiddleWareBase{
+    static function Main();
+}
 interface PageRenderOutBase{}
 interface PageRenderPageBase extends PageRenderOutBase{
     function Main();
 }
 interface PageRenderAPIBase extends PageRenderOutBase{
     function Main();
+}
+interface ClassFactoryException{};
+class ClassNotFoundException extends \Exception implements ClassFactoryException{}
+class ClassFactory{
+    static function Resolve(string $className){
+        if(class_exists($className)) return new $className; else throw new ClassNotFoundException();
+    }
 }
 ?>
