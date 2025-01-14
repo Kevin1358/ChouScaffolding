@@ -237,8 +237,7 @@ class PageRender{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $body = $this->endpointTargetPair[$endpoint]->page->Main();
-                    $this->html($body,$this->header);
+                    $this->html($this->endpointTargetPair[$endpoint]->page,$this->header);
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
@@ -252,9 +251,7 @@ class PageRender{
                     if($pageTypePair->restrictionFunction != null){
                         if(!($pageTypePair->restrictionFunction)()) throw new PageRenderRestrictionException("Restricted");
                     }
-                    $body = $this->endpointTargetPair[$endpoint]->page->Main();
-                    $this->service($body);
-                    
+                    $this->service($this->endpointTargetPair[$endpoint]->page);
                 }
                 catch(PageRenderRestrictionException $pex){
                     http_response_code(401);
@@ -269,15 +266,15 @@ class PageRender{
         }
     }
     
-    private function html($body,$header){?>
+    private function html(PageRenderPageBase $page,$header){?>
         <!DOCTYPE html>
         <html lang="en">
         <?php $header()?>
-        <?php $body()?>
+        <?php $page->Main()?>
         </html>
     <?php }
-    private function service($body){
-        $body();
+    private function service(PageRenderAPIBase $page){
+        $page->Main();
     }
     static public function Redirect($url){
         ?>
