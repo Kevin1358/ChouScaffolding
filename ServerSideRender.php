@@ -1,5 +1,7 @@
 <?php
 namespace ChouScaffolding\ServerSideRender;
+
+use ChouScaffolding\Database\Database;
 use ChouScaffolding\LogException\LogException;
 use Exception;
 
@@ -310,6 +312,66 @@ class ClassNotFoundException extends \Exception implements ClassFactoryException
 class ClassFactory{
     static function Resolve(string $className){
         if(class_exists($className)) return new $className; else throw new ClassNotFoundException();
+    }
+}
+
+class TableWithPaging{
+    protected Database $Db;
+    protected string $Query;
+    protected array $Param;
+    protected array $HeaderText;
+    protected array $ViewControl;
+    protected array $AddField;
+    protected int $StartPaging;
+    
+    public function __construct(Database $database,string $query,array $param,array $HeaderText,array $viewControl,array $additionalField) {
+        $this->Db = $database;
+        $this->Query = $query;
+        $this->Param = $param;
+        $this->HeaderText = $HeaderText;
+        $this->ViewControl = $viewControl;
+        $this->AddField = $additionalField;
+    }
+    public function Build(){
+        if(isset($_POST[spl_object_id($this)."startPaging"])){
+            if(isset($_POST["Back"])){
+                $this->StartPaging = max(($_POST[spl_object_id($this)."startPaging"]-5),0);
+            } ;
+            if(isset($_POST["Next"])){
+                $this->StartPaging = $_POST[spl_object_id($this)."startPaging"]+5;
+            } ;
+        }else{
+            $this->StartPaging = 0;
+        }
+        $datas = $this->Db->query($this->Query." limit ".$this->StartPaging.",".$this->StartPaging+5,[])->fetchAll(\PDO::FETCH_ASSOC);
+        ?>
+        <form method="post">
+        <table style="width: 100%;">
+            <tr>
+                <?php foreach($this->HeaderText as $header){?>
+                <th style="text-overflow:ellipsis;"><?php echo $header?></th>
+                <?php }?>
+            </tr>
+            <?php foreach($datas as $dataRow){?>
+            <tr>
+                <?php foreach($dataRow as $field=>$value){
+                    if(in_array($field,$this->ViewControl)){?>
+                <td style="text-overflow:ellipsis;"><?php echo $value?></td>
+                <?php }}?>
+                <?php foreach($this->AddField as $field){?>
+                <td style="text-overflow:ellipsis;"><?php $field($dataRow)?></td>
+                <?php }?>
+            </tr>
+            <?php }?>
+            <tr>
+                <section>
+                    <td><button type="submit" name="Back" value="Back">Back</button><button type="submit" name="Next" value="Next">Next</button></td>
+                    <td><input type="hidden" name="<?php echo spl_object_id($this)."startPaging"?>" value="<?php echo $this->StartPaging?>"></td>
+                </section>
+            </tr>
+        </table>
+        </form>
+        <?php 
     }
 }
 ?>
