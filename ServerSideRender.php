@@ -345,7 +345,7 @@ class TableWithPaging{
         }
         $datas = $this->Db->query($this->Query." limit ".$this->StartPaging.",".$this->StartPaging+5,[])->fetchAll(\PDO::FETCH_ASSOC);
         ?>
-        <form method="post">
+        <form method="post" id="paging-<?php echo spl_object_id($this)?>">
         <table style="width: 100%;">
             <tr>
                 <?php foreach($this->HeaderText as $header){?>
@@ -365,8 +365,8 @@ class TableWithPaging{
             <?php }?>
             <tr>
                 <section>
-                    <td><button type="submit" name="Back" value="Back">Back</button><button type="submit" name="Next" value="Next">Next</button></td>
-                    <td><input type="hidden" name="<?php echo spl_object_id($this)."startPaging"?>" value="<?php echo $this->StartPaging?>"></td>
+                    <td><button form="paging-<?php echo spl_object_id($this)?>" type="submit" name="Back" value="Back">Back</button><button form="paging-<?php echo spl_object_id($this)?>" type="submit" name="Next" value="Next">Next</button></td>
+                    <td><input form="paging-<?php echo spl_object_id($this)?>" type="hidden" name="<?php echo spl_object_id($this)."startPaging"?>" value="<?php echo $this->StartPaging?>"></td>
                 </section>
             </tr>
         </table>
